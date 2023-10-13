@@ -21,10 +21,11 @@
   let is_run=false;
   let id = 0;
   let change = false;
-  let speed=0;
+  let speed=40;
   let hidden = false;
   let asynchronous = false;
   let gradation = false;
+  let pause = false;
   const alphabet = "abcdefghijklmnopqrstuvwxyz"
   const numbers = "1234567890"
   const Alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -60,13 +61,27 @@
   function html_rendering(){
     html_lines = line_texts.map((line, x) =>
       oPTag + line.map((char, y)=>{
-        return char==' '? space_symbol : heads[x][y]==1? oHeadTag+line[y]+cHeadTag : gradation? `<span style=opacity:${heads[x][y]}>`+line[y]+'</span>':line[y]
+        if(heads[x][y] == 0){
+          return space_symbol;
+        }
+        else if(heads[x][y]==1){
+          return oHeadTag+char+cHeadTag;
+        }
+        else if(gradation){
+          return `<span style=opacity:${heads[x][y]}>`+line[y]+'</span>';
+        }
+        else{
+          return char;
+        }
       }).join('') + cPTag
     ).join('');
   }
 
   function move(){
     for(x=0; x<n_lines; x++){
+      if(asynchronous & Math.random()<0.5){
+        continue;
+      }
       for(y=n_words-1; y>0; y--){
         if(line_texts[x][y-1]==' '){
           line_texts[x][y]=' ';
@@ -79,8 +94,7 @@
         }
         heads[x][y] = heads[x][y-1];
       }
-    }
-    for(x=0;x<n_lines; x++){
+
       remaining_lengths[x]--;
       if(remaining_lengths[x]==0){
         remaining_lengths[x] = line_texts[x][0]==' '? Math.floor(Math.random()*(n_words-3))+4 : Math.floor(Math.random()*(n_words-1))+2;
@@ -98,66 +112,43 @@
       else{
         heads[x][0] = length[x]? (remaining_lengths[x]+0.9)/length[x] : 0;
       }
-       
-
     }
+    
 
   }
   function update(){
     //console.log("update")
     //console.log(heads)
-    move()
-    html_rendering()
+    if(!pause){
+      move();
+      html_rendering();
+    }
+
+    setTimeout(update, speed);
+
     //console.log(line_texts)
-  }
-  function changeSpeed(speed){
-    clearInterval(id);
-    id = setInterval(update, speed);
   }
   function onKeyDown(event){
     switch(event.key){
       case '1':
-        speed = 10;
-        changeSpeed(10);
-        break;
       case '2':
-        speed = 20;
-        changeSpeed(20);
-        break;
       case '3':
-        speed = 30;
-        changeSpeed(30);
-        break;
       case '4':
-        speed = 40;
-        changeSpeed(40);
-        break;
       case '5':
-        speed = 50;
-        changeSpeed(50);
-        break;
       case '6':
-        speed = 60;
-        changeSpeed(60);
-        break;
       case '7':
-        speed = 70;
-        changeSpeed(70);
-        break;
       case '8':
-        speed = 80;
-        changeSpeed(80);
-        break;
       case '9':
-        speed = 90;
-        changeSpeed(90);
-        break;
+        speed = Number(event.key)*10;
       case 'a':
         asynchronous = !asynchronous;
+        break;
       case 'd':
         change = false;
         asynchronous = false;
+        gradation = false;
         speed = 40;
+        break;
       case 'g':
         gradation = !gradation
         break;
@@ -168,33 +159,20 @@
         hidden = !hidden;
         break;
       case 'p':
-        if(is_run){
-          clearInterval(id);
-          is_run = false;
-          console.log(line_texts)
-          console.log(heads)
-        } 
-        else{
-          id = setInterval(update, speed);
-          is_run = true;
-        }
+        pause = !pause;
         break;
       case 'r':
-        clearInterval(id);
         clear_screen();
-        html_rendering();
-        id = setInterval(update, speed);
-        is_run = true;
         break;
       }
-  }
+      html_rendering();
+    }
   /*-- main --*/
   
   clear_screen();
   html_rendering();
-  speed = 40;
-  id = setInterval(update, speed);
-  is_run = true;
+  update();
+
 
 </script>
 
@@ -208,12 +186,15 @@
   {@html html_lines}
 </dev>
 <dev class="description" class:hidden>
-  web-matrix
-  KEYBOARD CONTROL:
-  d : Apply default setting.
-  k : Characters change while scrolling.
-  r : Restart scrolling.
-
+  <h1>Web-Matrix</h1>
+  <h2>KEYBOARD CONTROL:</h2>
+  <p>1~9 : scrolling speed</p>
+  <p>d : Apply default setting.</p>
+  <p>g : Gradation scrolling.</p>
+  <p>h : Show or hide descripton.</p>
+  <p>k : Characters change while scrolling.</p>
+  <p>p : Pause</p>
+  <p>r : Restart scrolling.</p>
 </dev>
 <svelte:window on:keydown|preventDefault={onKeyDown} />
 <style>
@@ -232,15 +213,23 @@
   }
   .description{
     visibility: visible;
-    position:fixed;
-    top:30px;
-    left:30px;
-    width:100px;
-    height:100px;
-    background-color: rgb(255, 149, 50);
+    position: absolute;
+    border: 5px solid #ffffff;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    margin: 10% auto auto auto;
+    border-radius: 10px; 
+    width:500px;
+    height:500px;
+    background-color: rgb(250, 150, 50);
   }
   .description.hidden{
     visibility: hidden;
+  }
+  h1 {
+    text-align: center;
   }
 </style>
 
