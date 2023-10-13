@@ -65,13 +65,14 @@
           return space_symbol;
         }
         else if(heads[x][y]==1){
-          return oHeadTag+char+cHeadTag;
-        }
-        else if(gradation){
-          return `<span style=opacity:${heads[x][y]}>`+line[y]+'</span>';
+          return !gradation? oHeadTag+char+cHeadTag : "</span>"+oHeadTag+char+cHeadTag;
         }
         else{
-          return char;
+          if(!gradation){
+            return char;
+          }
+
+          return (y==0 | heads[x][y-1]==0)? `<span style=background:linear-gradient(0,rgb(0,255,0),rgb(0,${Math.floor(255*heads[x][y])+50},0));-webkit-background-clip:text;-webkit-text-fill-color:transparent;>`+char:char;
         }
       }).join('') + cPTag
     ).join('');
