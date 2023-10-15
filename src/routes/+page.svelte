@@ -1,5 +1,7 @@
 <script>
   import { browser } from '$app/environment';
+  let screen;
+  let isFullScreen = false;
   let n_words = 0;
   let n_lines = 0;
   let space_symbol = "&nbsp;";
@@ -26,36 +28,50 @@
   let asynchronous = false;
   let gradation = false;
   let pause = false;
+  let colorNum = 0;
+  let color = [0, 0, 0];
+  const colorRGBs = [[0, 255, 0], 
+                     [255, 0, 0],
+                     [0, 0, 255],
+                     [255, 255, 0],
+                     [0, 255, 255],
+                     [255, 0, 255],
+                     [255, 255, 255]];
   const alphabet = "abcdefghijklmnopqrstuvwxyz"
   const numbers = "1234567890"
   const Alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-  const symbols = "!@#$%^&*+"
+  const symbols = "!@#$%^&*()`+|[]{};:\'\""
   const candidate_words = alphabet + Alphabet + numbers + symbols; 
 
-  if (browser) {
-    let root = document.documentElement;
-    
-    console.log(window.innerWidth, window.innerHeight);
-    width = window.innerWidth;
-    height = window.innerHeight;
-    let fontSize = window.getComputedStyle(root).getPropertyValue('font-size').slice(0, -2);
-    console.log(fontSize)
-    n_words = Math.floor(height / fontSize);
-    n_lines = Math.floor(width / fontSize);
-    console.log(n_words, n_lines)
+  function responseResize() {
+    console.log(window.innerHeight, window.innerWidth);
+    clear_screen();
   }
-
-  function clear_screen (){
-    console.log("clear_screen")
+  if (browser) {
+    window.onresize = responseResize;
+  }
+  function clear_screen(){
+    //console.log("clear_screen")
+    if (browser) {
+      let root = document.documentElement;
+      console.log(window.innerWidth, window.innerHeight);
+      width = window.innerWidth;
+      height = window.innerHeight;
+      let fontSize = window.getComputedStyle(root).getPropertyValue('font-size').slice(0, -2);
+      console.log(fontSize)
+      n_words = Math.floor(height / fontSize);
+      n_lines = Math.floor(width / fontSize);
+      console.log(n_words, n_lines);
+    }
     line_texts = Array(n_lines).fill(null).map(()=>Array(n_words).fill(' '));
     length = Array(n_lines).fill(0);
     heads = Array(n_lines).fill(null).map(()=>Array(n_words).fill(0));
     remaining_lengths =  Array(n_lines).fill(null).map(()=>Math.floor(Math.random()*(n_words-1))+2);
-    console.log(remaining_lengths)
+    //console.log(remaining_lengths)
     const MIN = Math.min(...remaining_lengths);
-    console.log(MIN)
+    //console.log(MIN)
     remaining_lengths = remaining_lengths.map(element => element - MIN + 1);
-    console.log(remaining_lengths)
+    //console.log(remaining_lengths)
   }
 
   function html_rendering(){
@@ -71,8 +87,7 @@
           if(!gradation){
             return char;
           }
-
-          return (y==0 | heads[x][y-1]==0)? `<span style=background:linear-gradient(0,rgb(0,255,0),rgb(0,${Math.floor(255*heads[x][y])+50},0));-webkit-background-clip:text;-webkit-text-fill-color:transparent;>`+char:char;
+          return (y==0 | heads[x][y-1]==0)? `<span style=background:linear-gradient(0,rgb(${color[0]},${color[1]},${color[2]}),rgb(${Math.floor(color[0]*heads[x][y])+50},${Math.floor(color[1]*heads[x][y])+50},${Math.floor(color[2]*heads[x][y])+50}));-webkit-background-clip:text;-webkit-text-fill-color:transparent;>`+char:char;
         }
       }).join('') + cPTag
     ).join('');
@@ -95,7 +110,6 @@
         }
         heads[x][y] = heads[x][y-1];
       }
-
       remaining_lengths[x]--;
       if(remaining_lengths[x]==0){
         remaining_lengths[x] = line_texts[x][0]==' '? Math.floor(Math.random()*(n_words-3))+4 : Math.floor(Math.random()*(n_words-1))+2;
@@ -124,9 +138,7 @@
       move();
       html_rendering();
     }
-
     setTimeout(update, speed);
-
     //console.log(line_texts)
   }
   function onKeyDown(event){
@@ -141,8 +153,17 @@
       case '8':
       case '9':
         speed = Number(event.key)*10;
+        if(asynchronous){
+          speed = speed/1.41
+        }
+        break;
       case 'a':
         asynchronous = !asynchronous;
+        speed = asynchronous? speed/1.41 : speed*1.41;
+        break;
+      case 'c':
+        colorNum = (colorNum+1)%colorRGBs.length;
+        color = colorRGBs[colorNum];
         break;
       case 'd':
         change = false;
@@ -150,11 +171,24 @@
         gradation = false;
         speed = 40;
         break;
+      case 'f':
+        break;
+        if(!isFullScreen){
+          screen.requestFullscreen();
+          isFullScreen = true;
+        }
+        else{
+          document.exitFullscreen();
+          isFullScreen = false;
+        }
+        break;
       case 'g':
         gradation = !gradation
         break;
       case 'k':
         change = !change;
+        break;
+      case 'l':
         break;
       case 'h':
         hidden = !hidden;
@@ -169,12 +203,10 @@
       html_rendering();
     }
   /*-- main --*/
-  
+  color = colorRGBs[colorNum];
   clear_screen();
   html_rendering();
   update();
-
-
 </script>
 
 <svelte:head>
@@ -182,20 +214,30 @@
 	<meta name="description" content="Matrix written in SvelteKit" />
 </svelte:head>
 
-<dev class="screen vertical">
-  <!--<span class="vertical">matrix</span>-->
+<dev class="screen" style="color: rgb({color[0]},{color[1]},{color[2]});" bind:this={screen}>
   {@html html_lines}
 </dev>
 <dev class="description" class:hidden>
   <h1>Web-Matrix</h1>
-  <h2>KEYBOARD CONTROL:</h2>
-  <p>1~9 : scrolling speed</p>
-  <p>d : Apply default setting.</p>
-  <p>g : Gradation scrolling.</p>
-  <p>h : Show or hide descripton.</p>
-  <p>k : Characters change while scrolling.</p>
-  <p>p : Pause</p>
-  <p>r : Restart scrolling.</p>
+  <p class="description_content">This web page simulate the display from "The Matrix".<br>
+    User can control scrolling from keyboard.<br> 
+    This program is written using Svelte based on 
+    <a href="https://github.com/abishekvashok/cmatrix" target="_blank">CMatrix</a> and 
+    <a href="https://github.com/will8211/unimatrix" target="_blank">UniMatrix</a>.
+  </p>
+  <h2 class="description_content">KEYBOARD CONTROL:</h2>
+  <p class="description_content key_control">
+    1~9 : scrolling speed.<br>
+    a : Asynchronous scroll. Lines will move at varied speeds.<br>
+    c : Change color.<br>
+    d : Apply default setting.<br>
+    f : Full screen mode. (🚧)<br>
+    g : Gradation scrolling.<br>
+    h : Show or hide descripton.<br>
+    k : Characters change while scrolling.<br>
+    l : Change character set. (🚧)<br>
+    p : Pause.<br>
+    r : Restart scrolling.</p>
 </dev>
 <svelte:window on:keydown|preventDefault={onKeyDown} />
 <style>
@@ -206,8 +248,8 @@
     background-color: rgb(0, 0, 0);
   }
   .screen > :global(.vertical) {
-    color: rgb(0, 255, 0);
     margin: 0%;
+    width: 18px;
   }
   .screen > :global(.vertical) > :global(.head) {
     color: rgb(255, 255, 255);
@@ -231,6 +273,13 @@
   }
   h1 {
     text-align: center;
+  }
+  .description_content{
+    padding-right: 20px;
+    padding-left: 20px;
+  }
+  .key_control{
+    line-height: 1.5em;
   }
 </style>
 
